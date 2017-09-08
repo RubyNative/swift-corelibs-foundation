@@ -134,7 +134,9 @@ fileprivate extension _HTTPURLProtocol {
             //     NSURLErrorNoPermissionsToReadFile
             //     NSURLErrorFileDoesNotExist
             self.internalState = .transferFailed
-            failWith(errorCode: errorCode(fileSystemError: e), errorDescription: "File system error", request: request)
+            let error = NSError(domain: NSURLErrorDomain, code: errorCode(fileSystemError: e),
+                                userInfo: [NSLocalizedDescriptionKey: "File system error"])
+            failWith(error: error, request: request)
             return
         }
 
@@ -328,18 +330,19 @@ internal extension _HTTPURLProtocol {
         case stream(InputStream)
     }
 
-    func failWith(errorCode: Int, errorDescription: String?, request: URLRequest) {
+    func failWith(error: NSError, request: URLRequest) {
         //TODO: Error handling
         let userInfo: [String : Any]? = request.url.map {
             [
+                NSUnderlyingErrorKey: error,
                 NSURLErrorFailingURLErrorKey: $0,
                 NSURLErrorFailingURLStringErrorKey: $0.absoluteString,
-                NSLocalizedDescriptionKey: errorDescription ?? "Unknown http error",
+                NSLocalizedDescriptionKey: NSLocalizedString(error.localizedDescription, comment: nil)
                 ]
         }
-        let error = URLError(_nsError: NSError(domain: NSURLErrorDomain, code: errorCode, userInfo: userInfo))
-        completeTask(withError: error)
-        self.client?.urlProtocol(self, didFailWithError: error)
+        let urlError = URLError(_nsError: NSError(domain: NSURLErrorDomain, code: error.code, userInfo: userInfo))
+        completeTask(withError: urlError)
+        self.client?.urlProtocol(self, didFailWithError: urlError)
     }
 }
 
@@ -529,16 +532,16 @@ extension _HTTPURLProtocol: _EasyHandleDelegate {
         }
     }
 
-    func transferCompleted(withErrorInfo errorInfo: URLErrorInfo?) {
+    func transferCompleted(withError error: NSError?) {
         // At this point the transfer is complete and we can decide what to do.
         // If everything went well, we will simply forward the resulting data
         // to the delegate. But in case of redirects etc. we might send another
         // request.
         guard case .transferInProgress(let ts) = internalState else { fatalError("Transfer completed, but it wasn't in progress.") }
         guard let request = task?.currentRequest else { fatalError("Transfer completed, but there's no current request.") }
-        guard errorInfo == nil else {
+        guard error == nil else {
             internalState = .transferFailed
-            failWith(errorCode: errorInfo!.code, errorDescription: errorInfo!.description, request: request)
+            failWith(error: error!, request: request)
             return
         }
 
@@ -556,7 +559,9 @@ extension _HTTPURLProtocol: _EasyHandleDelegate {
             completeTask()
         case .failWithError(let errorCode):
             internalState = .transferFailed
-            failWith(errorCode: errorCode, errorDescription: "Completion failure", request: request)
+            let error = NSError(domain: NSURLErrorDomain, code: errorCode,
+                                userInfo: [NSLocalizedDescriptionKey: "Completion failure"])
+            failWith(error: error, request: request)
         case .redirectWithRequest(let newRequest):
             redirectFor(request: newRequest)
         }
@@ -572,10 +577,6 @@ extension _HTTPURLProtocol: _EasyHandleDelegate {
         // perform multiple transfers. The values in `progress` are only for
         // the current transfer.
     }
-}
-
-internal struct URLErrorInfo {
-    let code: Int, description: String?
 }
 
 extension _HTTPURLProtocol {

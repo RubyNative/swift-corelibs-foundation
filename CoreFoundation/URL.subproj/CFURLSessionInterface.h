@@ -48,7 +48,9 @@ typedef struct CFURLSessionEasyCode {
     int value;
 } CFURLSessionEasyCode;
 
-CF_EXPORT const char * _Nonnull CFURLSessionErrorDescription(int value);
+CF_EXPORT CFStringRef _Nonnull CFURLSessionCreateErrorDescription(int value);
+
+CF_EXPORT int const CFURLSessionEasyErrorSize;
 
 /// CURLcode
 CF_EXPORT CFURLSessionEasyCode const CFURLSessionEasyCodeOK; // CURLE_OK
