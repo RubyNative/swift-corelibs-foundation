@@ -198,6 +198,7 @@ open class URLSession : NSObject {
     /// - Note: It's a **concurrent** queue.
     internal let taskAttributesIsolation: DispatchQueue 
     internal let taskRegistry = URLSession._TaskRegistry()
+    fileprivate let identifierLock = NSLock()
     fileprivate let identifier: Int32
     fileprivate var invalidated = false
     fileprivate static let registerProtocols: () = {
@@ -406,9 +407,11 @@ extension URLSession._Request {
 
 fileprivate extension URLSession {
     func createNextTaskIdentifier() -> Int {
-        let i = nextTaskIdentifier
-        nextTaskIdentifier += 1
-        return i
+        return identifierLock.synchronized {
+            let i = nextTaskIdentifier
+            nextTaskIdentifier += 1
+            return i
+        }
     }
 }
 
