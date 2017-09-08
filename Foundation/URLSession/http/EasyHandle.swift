@@ -185,6 +185,11 @@ extension _EasyHandle {
                 try! CFURLSession_easy_setopt_ptr(rawHandle, CFURLSessionOptionCAINFO, caInfo).asError()
             }
         }
+        else if getenv("URLSessionCAInfo") != nil {
+            NSLog("*********************************************************************************************")
+            NSLog("*** SSL environment variable has been renamed to 'URLSessionCertificateAuthorityInfoFile' ***")
+            NSLog("*********************************************************************************************")
+        }
 #endif
         //TODO: Added in libcurl 7.45.0
         //TODO: Set default protocol for schemeless URLs

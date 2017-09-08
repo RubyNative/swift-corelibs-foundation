@@ -422,7 +422,8 @@ open class NSKeyedUnarchiver : NSCoder {
     /**
         Decode an object for the given reference
      */
-    private func _decodeObject(_ objectRef: Any) throws -> Any? {
+    private func _decodeObject(_ objectRef: Any) -> Any? {
+        do {
         var object : Any? = nil
 
         let _ = _validateStillDecoding()
@@ -492,6 +493,12 @@ open class NSKeyedUnarchiver : NSCoder {
         }
 
         return _replacementObject(object)
+        }
+        catch let error {
+            NSLog("_decodeObject error: \(error)")
+            failWithError(error)
+            return nil
+        }
     }
 
     /**
@@ -502,7 +509,7 @@ open class NSKeyedUnarchiver : NSCoder {
             throw _decodingError(CocoaError.coderValueNotFound, withDescription: "No value found for key \(key as Optional). The data may be corrupt.")
         }
         
-        return try _decodeObject(objectRef!)
+        return _decodeObject(objectRef!)
     }
 
     /**
@@ -529,7 +536,7 @@ open class NSKeyedUnarchiver : NSCoder {
                 return
             }
             
-            if let object = try _decodeObject(objectRef as Any) {
+            if let object = _decodeObject(objectRef as Any) {
                 block(object)
             }
         }
